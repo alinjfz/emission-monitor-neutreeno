@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Inbox, RefreshCw, SearchX } from 'lucide-react'
 import { useSearchParams } from 'react-router'
 
@@ -16,6 +16,7 @@ import type {
 } from '@/types/api'
 
 import { AppHeader } from './app-header'
+import { CreateSubmissionDialog } from './create-submission-dialog'
 import { ListToolbar } from './list-toolbar'
 import { PaginationControls } from './pagination-controls'
 import { ReviewComposer } from './review-composer'
@@ -54,7 +55,9 @@ export function SubmissionsPage() {
   const selected = selectedValue > 0 ? selectedValue : null
 
   const [refreshKey, setRefreshKey] = useState(0)
+  const [createOpen, setCreateOpen] = useState(false)
   const [detailRetryKey, setDetailRetryKey] = useState(0)
+  const preloadedDetailRef = useRef<SubmissionDetail | null>(null)
   const detailRequestKey = `${selected ?? 'closed'}:${detailRetryKey}`
   const [detailState, setDetailState] = useState<{
     key: string
@@ -68,7 +71,6 @@ export function SubmissionsPage() {
     { status, search, sort, direction, page, pageSize },
     refreshKey,
   )
-
   function updateParams(
     updates: Record<string, string | null>,
     { resetPage = true }: { resetPage?: boolean } = {},
@@ -94,6 +96,13 @@ export function SubmissionsPage() {
 
   useEffect(() => {
     if (selected === null) return
+    if (preloadedDetailRef.current?.id === selected) {
+      const preloaded = preloadedDetailRef.current
+      preloadedDetailRef.current = null
+      setDetailState({ key: detailRequestKey, detail: preloaded, error: '' })
+      setRefreshKey((current) => current + 1)
+      return
+    }
     const controller = new AbortController()
     submissionsApi
       .open(selected, controller.signal)
@@ -143,6 +152,22 @@ export function SubmissionsPage() {
     setRefreshKey((current) => current + 1)
   }
 
+  function handleCreated(created: SubmissionDetail) {
+    setCreateOpen(false)
+    preloadedDetailRef.current = created
+    updateParams({ selected: String(created.id) }, { resetPage: false })
+  }
+
+  function handleUpdated(updated: SubmissionDetail) {
+    setDetailState({ key: detailRequestKey, detail: updated, error: '' })
+    setRefreshKey((current) => current + 1)
+  }
+
+  function handleDeleted() {
+    closeDetail()
+    setRefreshKey((current) => current + 1)
+  }
+
   function renderReview(submission: Submission, surface: 'list' | 'detail' = 'list') {
     const editorKey = `${surface}:${submission.id}`
     return (
@@ -162,7 +187,7 @@ export function SubmissionsPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <AppHeader />
+      <AppHeader onAdd={() => setCreateOpen(true)} />
       <main className="mx-auto max-w-[1480px] px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
@@ -237,14 +262,18 @@ export function SubmissionsPage() {
       </main>
 
       <SubmissionDialog
+        key={selected ?? 'closed'}
         selected={selected}
         detail={detailState.key === detailRequestKey ? detailState.detail : null}
         loading={selected !== null && detailState.key !== detailRequestKey}
         error={detailState.key === detailRequestKey ? detailState.error : ''}
         onClose={closeDetail}
         onRetry={() => setDetailRetryKey((current) => current + 1)}
+        onUpdated={handleUpdated}
+        onDeleted={handleDeleted}
         renderReview={(submission) => renderReview(submission, 'detail')}
       />
+      <CreateSubmissionDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={handleCreated} />
     </div>
   )
 }

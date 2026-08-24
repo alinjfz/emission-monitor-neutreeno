@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react'
-import { CalendarDays, Clock3, Leaf, Package, TriangleAlert } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { CalendarDays, Clock3, Leaf, Package, Pencil, TriangleAlert } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -7,10 +8,12 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 import { formatDate, formatDateTime, inclusiveDuration } from '@/lib/dates'
 import { formatDecimal } from '@/lib/format'
 import { isHighEmissions, isHighUncertainty } from '@/lib/risks'
@@ -18,7 +21,10 @@ import { UNIT_LABELS } from '@/lib/units'
 import type { SubmissionDetail } from '@/types/api'
 
 import { ReviewHistory } from './review-history'
+import { SubmissionForm } from './submission-form'
+import { submissionValues } from './submission-values'
 import { StatusBadge } from './status-badge'
+import { submissionsApi } from './submissions-api'
 
 function DetailLoading() {
   return (
@@ -47,6 +53,8 @@ export function SubmissionDialog({
   error,
   onClose,
   onRetry,
+  onUpdated,
+  onDeleted,
   renderReview,
 }: {
   selected: number | null
@@ -55,34 +63,85 @@ export function SubmissionDialog({
   error: string
   onClose: () => void
   onRetry: () => void
+  onUpdated: (detail: SubmissionDetail) => void
+  onDeleted: (id: number) => void
   renderReview: (submission: SubmissionDetail) => ReactNode
 }) {
+  const [editing, setEditing] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
+  async function handleDelete() {
+    if (!detail) return
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await submissionsApi.delete(detail.id)
+      toast.success('Submission deleted')
+      setDeleteConfirmOpen(false)
+      setEditing(false)
+      onDeleted(detail.id)
+    } catch (caught) {
+      setDeleteError(caught instanceof Error ? caught.message : 'Unable to delete the submission.')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
-    <Dialog open={selected !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto p-0 sm:max-w-2xl max-sm:inset-0 max-sm:top-0 max-sm:left-0 max-sm:h-[100dvh] max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none">
-        {loading && <div className="p-6"><DetailLoading /></div>}
-        {!loading && error && (
-          <div className="p-6">
-            <DialogHeader><DialogTitle>Unable to open submission</DialogTitle><DialogDescription>The detail could not be loaded.</DialogDescription></DialogHeader>
-            <Alert variant="destructive" className="mt-5">
-              <AlertTitle>Something went wrong</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-            <Button className="mt-4" variant="outline" onClick={onRetry}>Try again</Button>
-          </div>
-        )}
-        {!loading && detail && (
-          <>
-            <DialogHeader className="border-b px-6 py-5 pr-14">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <DialogTitle className="text-xl leading-tight">{detail.product.name}</DialogTitle>
-                  <DialogDescription className="mt-1">{detail.product.code} · {detail.supplier.name}</DialogDescription>
-                </div>
-                <StatusBadge status={detail.status} />
+    <>
+      <Dialog open={selected !== null} onOpenChange={(open) => !open && !deleting && onClose()}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-0 sm:max-w-2xl max-sm:inset-0 max-sm:top-0 max-sm:left-0 max-sm:h-[100dvh] max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none">
+          {loading && <div className="p-6"><DetailLoading /></div>}
+          {!loading && error && (
+            <div className="p-6">
+              <DialogHeader><DialogTitle>Unable to open submission</DialogTitle><DialogDescription>The detail could not be loaded.</DialogDescription></DialogHeader>
+              <Alert variant="destructive" className="mt-5">
+                <AlertTitle>Something went wrong</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+              <Button className="mt-4" variant="outline" onClick={onRetry}>Try again</Button>
+            </div>
+          )}
+          {!loading && detail && editing && (
+            <>
+              <DialogHeader className="border-b px-6 py-5 pr-14">
+                <DialogTitle>Edit submission</DialogTitle>
+                <DialogDescription>Submission #{detail.id} · Status and review data are system-managed.</DialogDescription>
+              </DialogHeader>
+              <div className="px-6 py-5">
+                <SubmissionForm
+                  key={detail.id}
+                  initialValues={submissionValues(detail)}
+                  submitLabel="Save changes"
+                  onSave={(values) => submissionsApi.update(detail.id, values)}
+                  onSaved={(updated) => {
+                    toast.success('Submission updated')
+                    onUpdated(updated)
+                    setEditing(false)
+                  }}
+                  onCancel={() => setEditing(false)}
+                  onDelete={() => setDeleteConfirmOpen(true)}
+                />
               </div>
-            </DialogHeader>
-            <div className="space-y-6 px-6 py-5">
+            </>
+          )}
+          {!loading && detail && !editing && (
+            <>
+              <DialogHeader className="border-b px-6 py-5 pr-14">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <DialogTitle className="text-xl leading-tight">{detail.product.name}</DialogTitle>
+                    <DialogDescription className="mt-1">{detail.product.code} · {detail.supplier.name}</DialogDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}><Pencil aria-hidden="true" /> Edit</Button>
+                    <StatusBadge status={detail.status} />
+                  </div>
+                </div>
+              </DialogHeader>
+              <div className="space-y-6 px-6 py-5">
               <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <DetailFact icon={Leaf} label="Footprint">
                   <span className="text-lg font-semibold tabular-nums">{formatDecimal(detail.footprint_value)}</span>{' '}
@@ -118,10 +177,32 @@ export function SubmissionDialog({
               </section>
 
               <ReviewHistory key={detail.id} events={detail.review_history} />
-            </div>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteConfirmOpen} onOpenChange={(open) => !deleting && setDeleteConfirmOpen(open)}>
+        <DialogContent showCloseButton={!deleting}>
+          <DialogHeader>
+            <DialogTitle>Delete this submission?</DialogTitle>
+            <DialogDescription>This permanently deletes the record and its complete review history.</DialogDescription>
+          </DialogHeader>
+          {deleteError && (
+            <Alert variant="destructive">
+              <AlertDescription>{deleteError}</AlertDescription>
+            </Alert>
+          )}
+          <DialogFooter>
+            <Button variant="outline" disabled={deleting} onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+            <Button variant="destructive" disabled={deleting} onClick={() => void handleDelete()}>
+              {deleting && <Spinner />}
+              {deleting ? 'Deleting…' : 'Delete submission'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

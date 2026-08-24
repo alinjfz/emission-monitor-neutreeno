@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from app.schemas.common import ApiModel
 
@@ -68,6 +68,45 @@ class SubmissionListOut(ApiModel):
     total: int
     total_pages: int
     status_counts: StatusCounts
+
+
+class SubmissionFields(ApiModel):
+    supplier_name: str = Field(min_length=1, max_length=140)
+    product_name: str = Field(min_length=1, max_length=160)
+    product_code: str = Field(min_length=1, max_length=50)
+    footprint_value: Decimal = Field(
+        ge=Decimal("0"),
+        le=Decimal("999999999999.999999"),
+        decimal_places=6,
+    )
+    unit_code: Literal["per_item", "per_kg"]
+    uncertainty: Decimal = Field(
+        ge=Decimal("0"),
+        le=Decimal("100"),
+        decimal_places=2,
+    )
+    period_start: date
+    period_end: date
+    methodology: str = Field(min_length=1, max_length=2_000)
+
+    @field_validator("supplier_name", "product_name", "product_code", "methodology")
+    @classmethod
+    def normalize_text(cls, value: str) -> str:
+        return value.strip()
+
+    @model_validator(mode="after")
+    def validate_period(self) -> "SubmissionFields":
+        if self.period_end < self.period_start:
+            raise ValueError("Reporting period end must be on or after its start.")
+        return self
+
+
+class SubmissionCreateRequest(SubmissionFields):
+    pass
+
+
+class SubmissionUpdateRequest(SubmissionFields):
+    pass
 
 
 class ReviewRequest(ApiModel):

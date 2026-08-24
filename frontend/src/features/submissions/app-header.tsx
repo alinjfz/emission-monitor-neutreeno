@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DatabaseBackup, LogOut } from 'lucide-react'
+import { DatabaseBackup, LogOut, Plus } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 
@@ -25,7 +25,7 @@ import { ApiError } from '@/lib/api-client'
 
 import { developerApi } from './developer-api'
 
-export function AppHeader() {
+export function AppHeader({ onAdd }: { onAdd: () => void }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [reseedOpen, setReseedOpen] = useState(false)
@@ -63,6 +63,10 @@ export function AppHeader() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuItem onSelect={onAdd}>
+              <Plus aria-hidden="true" /> Add submission
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             {reseedEnabled && (
               <>
                 <DropdownMenuItem variant="destructive" onSelect={() => setReseedOpen(true)}>

@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import Literal
 
-from sqlalchemy import case, func, or_, select, update
+from sqlalchemy import case, delete, func, or_, select, update
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.errors import AppError
@@ -17,9 +17,11 @@ from app.schemas.submissions import (
     ReviewEventOut,
     ReviewRequest,
     StatusCounts,
+    SubmissionCreateRequest,
     SubmissionDetailOut,
     SubmissionListOut,
     SubmissionSummaryOut,
+    SubmissionUpdateRequest,
     SupplierOut,
 )
 
@@ -111,6 +113,134 @@ def _get_submission(db: Session, submission_id: int) -> FootprintSubmission:
 
 def get_submission(db: Session, submission_id: int) -> SubmissionDetailOut:
     return _detail_out(_get_submission(db, submission_id))
+
+
+def _resolve_product(
+    db: Session,
+    *,
+    supplier_name: str,
+    product_name: str,
+    product_code: str,
+    current: FootprintSubmission | None = None,
+) -> Product:
+    supplier = db.scalar(select(Supplier).where(func.lower(Supplier.name) == supplier_name.lower()))
+    if supplier is None:
+        supplier = Supplier(name=supplier_name)
+        db.add(supplier)
+        db.flush()
+
+    existing = db.scalar(
+        select(Product).where(
+            Product.supplier_id == supplier.id,
+            Product.code == product_code,
+        )
+    )
+    if existing is not None:
+        if current is not None and existing.id == current.product_id:
+            references = db.scalar(
+                select(func.count(FootprintSubmission.id)).where(
+                    FootprintSubmission.product_id == current.product_id
+                )
+            )
+            if references == 1:
+                existing.name = product_name
+                return existing
+        if existing.name != product_name:
+            raise AppError(
+                409,
+                "product_conflict",
+                "That supplier already has a different product with this code.",
+                field_errors={"product_code": ["Use a unique code for this supplier."]},
+            )
+        return existing
+
+    if current is not None:
+        references = db.scalar(
+            select(func.count(FootprintSubmission.id)).where(
+                FootprintSubmission.product_id == current.product_id
+            )
+        )
+        if references == 1:
+            current.product.supplier = supplier
+            current.product.name = product_name
+            current.product.code = product_code
+            return current.product
+
+    product = Product(supplier_id=supplier.id, name=product_name, code=product_code)
+    db.add(product)
+    db.flush()
+    return product
+
+
+def create_submission(db: Session, payload: SubmissionCreateRequest) -> SubmissionDetailOut:
+    product = _resolve_product(
+        db,
+        supplier_name=payload.supplier_name,
+        product_name=payload.product_name,
+        product_code=payload.product_code,
+    )
+    created_at = utc_now()
+    submission = FootprintSubmission(
+        product_id=product.id,
+        status=SubmissionStatus.NEW.value,
+        footprint_value=payload.footprint_value,
+        unit_code=payload.unit_code,
+        uncertainty=payload.uncertainty,
+        period_start=payload.period_start,
+        period_end=payload.period_end,
+        methodology=payload.methodology,
+        submitted_at=created_at,
+        updated_at=created_at,
+        version=1,
+    )
+    db.add(submission)
+    db.commit()
+    return _detail_out(_get_submission(db, submission.id))
+
+
+def update_submission(
+    db: Session,
+    submission_id: int,
+    payload: SubmissionUpdateRequest,
+) -> SubmissionDetailOut:
+    current = _get_submission(db, submission_id)
+    product = _resolve_product(
+        db,
+        supplier_name=payload.supplier_name,
+        product_name=payload.product_name,
+        product_code=payload.product_code,
+        current=current,
+    )
+    changed_at = utc_now()
+    db.execute(
+        update(FootprintSubmission)
+        .where(FootprintSubmission.id == submission_id)
+        .values(
+            product_id=product.id,
+            footprint_value=payload.footprint_value,
+            unit_code=payload.unit_code,
+            uncertainty=payload.uncertainty,
+            period_start=payload.period_start,
+            period_end=payload.period_end,
+            methodology=payload.methodology,
+            updated_at=changed_at,
+            version=FootprintSubmission.version + 1,
+        )
+    )
+    db.commit()
+    db.expire_all()
+    return _detail_out(_get_submission(db, submission_id))
+
+
+def delete_submission(db: Session, submission_id: int) -> None:
+    if (
+        db.scalar(select(FootprintSubmission.id).where(FootprintSubmission.id == submission_id))
+        is None
+    ):
+        raise AppError(404, "submission_not_found", "Submission not found.")
+    db.execute(delete(ReviewEvent).where(ReviewEvent.submission_id == submission_id))
+    db.execute(delete(FootprintSubmission).where(FootprintSubmission.id == submission_id))
+    db.commit()
 
 
 def _escape_like(value: str) -> str:

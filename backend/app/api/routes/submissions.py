@@ -1,20 +1,25 @@
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, Path, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.security import CurrentUser, require_allowed_origin
 from app.db.session import get_db
 from app.schemas.submissions import (
     ReviewRequest,
+    SubmissionCreateRequest,
     SubmissionDetailOut,
     SubmissionListOut,
+    SubmissionUpdateRequest,
 )
 from app.services.submissions import (
+    create_submission,
+    delete_submission,
     get_submission,
     list_submissions,
     open_submission,
     review_submission,
+    update_submission,
 )
 
 router = APIRouter(prefix="/api/submissions", tags=["submissions"])
@@ -58,6 +63,16 @@ def list_all(
     )
 
 
+@router.post("", response_model=SubmissionDetailOut, status_code=status.HTTP_201_CREATED)
+def create(
+    payload: SubmissionCreateRequest,
+    _user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    _origin: Annotated[None, Depends(require_allowed_origin)],
+) -> SubmissionDetailOut:
+    return create_submission(db, payload)
+
+
 @router.get("/{submission_id}", response_model=SubmissionDetailOut)
 def retrieve(
     _user: CurrentUser,
@@ -65,6 +80,28 @@ def retrieve(
     submission_id: Annotated[int, Path(ge=1)],
 ) -> SubmissionDetailOut:
     return get_submission(db, submission_id)
+
+
+@router.patch("/{submission_id}", response_model=SubmissionDetailOut)
+def update(
+    payload: SubmissionUpdateRequest,
+    _user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    submission_id: Annotated[int, Path(ge=1)],
+    _origin: Annotated[None, Depends(require_allowed_origin)],
+) -> SubmissionDetailOut:
+    return update_submission(db, submission_id, payload)
+
+
+@router.delete("/{submission_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete(
+    _user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    submission_id: Annotated[int, Path(ge=1)],
+    _origin: Annotated[None, Depends(require_allowed_origin)],
+) -> Response:
+    delete_submission(db, submission_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/{submission_id}/open", response_model=SubmissionDetailOut)

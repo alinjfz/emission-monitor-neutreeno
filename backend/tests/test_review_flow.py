@@ -109,3 +109,149 @@ def test_complete_review_flow_and_concurrent_open(clients: tuple[TestClient, Tes
     assert reseeded_listing["total"] == 36
     assert reseeded_listing["status_counts"]["new"] == 36
     assert reseeded_listing["status_counts"]["pending"] == 0
+
+
+def test_submission_create_update_and_delete(clients: tuple[TestClient, TestClient]) -> None:
+    client, _second = clients
+    assert (
+        client.post("/api/auth/login", json={"email": "a@a.a", "password": "1234"}).status_code
+        == 200
+    )
+
+    payload = {
+        "supplier_name": "Northwind Materials",
+        "product_name": "Low-carbon panel",
+        "product_code": "NW-001",
+        "footprint_value": "12.345678",
+        "unit_code": "per_item",
+        "uncertainty": "8.25",
+        "period_start": "2026-01-01",
+        "period_end": "2026-03-31",
+        "methodology": "Measured energy data with supplier-specific material factors.",
+        "status": "approved",
+        "version": 99,
+    }
+    created_response = client.post("/api/submissions", json=payload)
+    assert created_response.status_code == 201
+    created = created_response.json()
+    assert created["status"] == "new"
+    assert created["version"] == 1
+    assert created["footprint_value"] == "12.345678"
+    assert created["review_history"] == []
+    submission_id = created["id"]
+
+    updated_response = client.patch(
+        f"/api/submissions/{submission_id}",
+        json={
+            **payload,
+            "supplier_name": "Northwind Renewables",
+            "product_name": "Ultra-low-carbon panel",
+            "product_code": "NW-002",
+            "footprint_value": "9.000001",
+        },
+    )
+    assert updated_response.status_code == 200
+    updated = updated_response.json()
+    assert updated["supplier"]["name"] == "Northwind Renewables"
+    assert updated["product"]["name"] == "Ultra-low-carbon panel"
+    assert updated["product"]["code"] == "NW-002"
+    assert updated["footprint_value"] == "9.000001"
+    assert updated["status"] == "new"
+    assert updated["version"] == 2
+
+    renamed_response = client.patch(
+        f"/api/submissions/{submission_id}",
+        json={
+            **payload,
+            "supplier_name": "Northwind Renewables",
+            "product_name": "Renamed carbon panel",
+            "product_code": "NW-002",
+            "footprint_value": "9.000001",
+        },
+    )
+    assert renamed_response.status_code == 200
+    renamed = renamed_response.json()
+    assert renamed["product"]["name"] == "Renamed carbon panel"
+    assert renamed["version"] == 3
+
+    shared_response = client.post(
+        "/api/submissions",
+        json={
+            **payload,
+            "supplier_name": "Northwind Renewables",
+            "product_name": "Renamed carbon panel",
+            "product_code": "NW-002",
+        },
+    )
+    assert shared_response.status_code == 201
+    shared = shared_response.json()
+    reassigned_response = client.patch(
+        f"/api/submissions/{shared['id']}",
+        json={
+            **payload,
+            "supplier_name": "Northwind Circular",
+            "product_name": "Circular carbon panel",
+            "product_code": "NW-003",
+        },
+    )
+    assert reassigned_response.status_code == 200
+    reassigned = reassigned_response.json()
+    assert reassigned["supplier"]["name"] == "Northwind Circular"
+    assert reassigned["product"]["name"] == "Circular carbon panel"
+    assert client.delete(f"/api/submissions/{shared['id']}").status_code == 204
+
+    reviewed = client.post(
+        f"/api/submissions/{submission_id}/reviews",
+        json={"action": "approved", "comment": "Verified.", "expected_version": 3},
+    )
+    assert reviewed.status_code == 200
+    assert reviewed.json()["review_history"][0]["action"] == "approved"
+
+    deleted = client.delete(f"/api/submissions/{submission_id}")
+    assert deleted.status_code == 204
+    assert client.get(f"/api/submissions/{submission_id}").status_code == 404
+    assert client.get("/api/submissions").json()["total"] == 36
+
+
+def test_submission_write_validation(clients: tuple[TestClient, TestClient]) -> None:
+    client, _second = clients
+    assert (
+        client.post("/api/auth/login", json={"email": "a@a.a", "password": "1234"}).status_code
+        == 200
+    )
+
+    response = client.post(
+        "/api/submissions",
+        json={
+            "supplier_name": "Supplier",
+            "product_name": "Product",
+            "product_code": "P-1",
+            "footprint_value": "1.0000001",
+            "unit_code": "per_item",
+            "uncertainty": "101",
+            "period_start": "2026-02-01",
+            "period_end": "2026-01-01",
+            "methodology": "Measured data.",
+        },
+    )
+    assert response.status_code == 422
+    errors = response.json()["error"]["field_errors"]
+    assert "footprint_value" in errors
+    assert "uncertainty" in errors
+
+    invalid_period = client.post(
+        "/api/submissions",
+        json={
+            "supplier_name": "Supplier",
+            "product_name": "Product",
+            "product_code": "P-1",
+            "footprint_value": "1.000001",
+            "unit_code": "per_item",
+            "uncertainty": "10",
+            "period_start": "2026-02-01",
+            "period_end": "2026-01-01",
+            "methodology": "Measured data.",
+        },
+    )
+    assert invalid_period.status_code == 422
+    assert "request" in invalid_period.json()["error"]["field_errors"]

@@ -68,12 +68,13 @@ export function ReviewComposer({
   }
 
   async function decide(action: DecisionAction) {
+    const comment = draft.trim() || null
     setError('')
     setPendingAction(action)
     try {
       const detail = await submissionsApi.review(submission.id, {
         action,
-        comment: draft.trim() || undefined,
+        comment: comment ?? undefined,
         expected_version: submission.version,
       })
       onDraftChange('')
@@ -85,7 +86,8 @@ export function ReviewComposer({
         toast.warning('Another reviewer updated this submission. The latest version is shown.')
         onConflict(caught.latestSubmission)
       } else {
-        setError(caught instanceof ApiError ? caught.message : 'Unable to save the review. Please try again.')
+        const message = caught instanceof ApiError ? caught.message : 'Unable to save the review. Please try again.'
+        setError(message)
       }
     } finally {
       setPendingAction(null)

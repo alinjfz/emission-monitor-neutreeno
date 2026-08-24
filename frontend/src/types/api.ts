@@ -71,6 +71,18 @@ export interface SubmissionDetail extends Submission {
   review_history: ReviewEvent[]
 }
 
+export interface SubmissionWriteInput {
+  supplier_name: string
+  product_name: string
+  product_code: string
+  footprint_value: string
+  unit_code: UnitCode
+  uncertainty: string
+  period_start: string
+  period_end: string
+  methodology: string
+}
+
 export interface StatusCounts {
   all: number
   new: number
