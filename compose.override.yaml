@@ -1,0 +1,32 @@
+services:
+  app:
+    build:
+      target: backend-dev
+    environment:
+      ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000
+      ENABLE_DATABASE_RESEED: "true"
+      WATCHFILES_FORCE_POLLING: "true"
+    volumes:
+      - ./backend:/app/backend
+      - emissions_data:/data
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend-dev
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_API_PROXY: http://app:8000
+      VITE_ENABLE_DATABASE_RESEED: "true"
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/app/frontend
+      - frontend_node_modules:/app/frontend/node_modules
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  frontend_node_modules:
