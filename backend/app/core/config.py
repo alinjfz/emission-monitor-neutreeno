@@ -1,3 +1,5 @@
+"""Environment-backed application settings."""
+
 from functools import lru_cache
 from pathlib import Path
 
@@ -20,6 +22,7 @@ class Settings(BaseSettings):
 
     @property
     def allowed_origin_set(self) -> set[str]:
+        """Normalize configured origins once at the HTTP trust boundary."""
         return {
             origin.strip().rstrip("/")
             for origin in self.allowed_origins.split(",")
@@ -29,4 +32,5 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    """Return one immutable-by-convention settings object per process."""
     return Settings()

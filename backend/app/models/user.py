@@ -1,3 +1,5 @@
+"""Authenticated reviewer model."""
+
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -13,6 +15,8 @@ if TYPE_CHECKING:
 
 
 class User(Base):
+    """Account data; only an Argon2 password hash is persisted."""
+
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)

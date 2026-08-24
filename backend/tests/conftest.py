@@ -1,3 +1,5 @@
+"""Isolated SQLite application fixture shared by API integration tests."""
+
 from collections.abc import Generator
 
 import pytest
@@ -13,6 +15,7 @@ from app.main import create_app
 
 @pytest.fixture
 def clients(tmp_path) -> Generator[tuple[TestClient, TestClient], None, None]:
+    """Provide two signed-cookie clients against one database for race testing."""
     engine = build_engine(f"sqlite:///{tmp_path / 'test.db'}")
     testing_session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     Base.metadata.create_all(engine)
@@ -20,6 +23,8 @@ def clients(tmp_path) -> Generator[tuple[TestClient, TestClient], None, None]:
         seed_database(db)
 
     def override_db() -> Generator[Session, None, None]:
+        """Yield request sessions connected to the isolated test engine."""
+        # Each request gets its own session while both clients share the same engine.
         with testing_session() as db:
             yield db
 
@@ -32,6 +37,7 @@ def clients(tmp_path) -> Generator[tuple[TestClient, TestClient], None, None]:
         TestClient(app, base_url="http://localhost:8000", headers=headers) as first,
         TestClient(app, base_url="http://localhost:8000", headers=headers) as second,
     ):
+        # Separate cookie jars represent independent reviewers.
         yield first, second
 
     Base.metadata.drop_all(engine)

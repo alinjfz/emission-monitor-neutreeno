@@ -1,3 +1,4 @@
+/** Contract regression for mapping API detail data into editable form values. */
 import assert from 'node:assert/strict'
 import test from 'node:test'
 

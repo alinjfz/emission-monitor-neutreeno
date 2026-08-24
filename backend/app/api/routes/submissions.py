@@ -1,3 +1,5 @@
+"""HTTP contract for submissions; use cases and transactions live in services."""
+
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Path, Query, Response, status
@@ -24,6 +26,8 @@ from app.services.submissions import (
 
 router = APIRouter(prefix="/api/submissions", tags=["submissions"])
 
+# Literal query types make FastAPI reject unsupported filters/sorts before they
+# reach SQL construction and mirror the frontend's central API types.
 ListStatus = Literal["all", "new", "pending", "approved", "rejected"]
 SortName = Literal[
     "queue",
@@ -52,6 +56,7 @@ def list_all(
     page: Annotated[int, Query(ge=1, le=10_000)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 10,
 ) -> SubmissionListOut:
+    """Return one authenticated, validated page of the review queue."""
     return list_submissions(
         db,
         status=status,
@@ -70,6 +75,8 @@ def create(
     db: Annotated[Session, Depends(get_db)],
     _origin: Annotated[None, Depends(require_allowed_origin)],
 ) -> SubmissionDetailOut:
+    """Create a submission from user-editable fields."""
+    # Every cookie-authenticated write also requires an allowlisted browser origin.
     return create_submission(db, payload)
 
 
@@ -79,6 +86,7 @@ def retrieve(
     db: Annotated[Session, Depends(get_db)],
     submission_id: Annotated[int, Path(ge=1)],
 ) -> SubmissionDetailOut:
+    """Return a submission together with its complete review history."""
     return get_submission(db, submission_id)
 
 
@@ -90,6 +98,7 @@ def update(
     submission_id: Annotated[int, Path(ge=1)],
     _origin: Annotated[None, Depends(require_allowed_origin)],
 ) -> SubmissionDetailOut:
+    """Replace the editable fields of an existing submission."""
     return update_submission(db, submission_id, payload)
 
 
@@ -100,6 +109,7 @@ def delete(
     submission_id: Annotated[int, Path(ge=1)],
     _origin: Annotated[None, Depends(require_allowed_origin)],
 ) -> Response:
+    """Delete a submission and return an empty success response."""
     delete_submission(db, submission_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -111,6 +121,7 @@ def open_detail(
     submission_id: Annotated[int, Path(ge=1)],
     _origin: Annotated[None, Depends(require_allowed_origin)],
 ) -> SubmissionDetailOut:
+    """Open a submission, performing its one-time pending transition if needed."""
     return open_submission(db, submission_id, user)
 
 
@@ -122,4 +133,5 @@ def review(
     submission_id: Annotated[int, Path(ge=1)],
     _origin: Annotated[None, Depends(require_allowed_origin)],
 ) -> SubmissionDetailOut:
+    """Record an optimistic-concurrency-protected approval or rejection."""
     return review_submission(db, submission_id, user, payload)

@@ -1,5 +1,6 @@
 services:
   app:
+    # Compose automatically overlays this development target onto compose.yaml.
     build:
       target: backend-dev
     environment:
@@ -7,6 +8,7 @@ services:
       ENABLE_DATABASE_RESEED: "true"
       WATCHFILES_FORCE_POLLING: "true"
     volumes:
+      # Bind-mounted source enables backend live reload without rebuilding the image.
       - ./backend:/app/backend
       - emissions_data:/data
 
@@ -23,6 +25,7 @@ services:
       - "${FRONTEND_PORT:-5173}:5173"
     volumes:
       - ./frontend:/app/frontend
+      # Keep container-native dependencies out of the host bind mount.
       - frontend_node_modules:/app/frontend/node_modules
     depends_on:
       app:

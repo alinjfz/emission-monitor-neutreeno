@@ -1,3 +1,4 @@
+/** Typed submission endpoint adapter; UI components do not call fetch directly. */
 import { apiFetch } from '@/lib/api-client'
 import type {
   DecisionAction,
@@ -9,6 +10,7 @@ import type {
 export interface ReviewInput {
   action: DecisionAction
   comment?: string
+  // Optimistic-concurrency token from the displayed record.
   expected_version: number
 }
 

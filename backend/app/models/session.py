@@ -1,3 +1,5 @@
+"""Server-side authentication session model."""
+
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -12,6 +14,8 @@ if TYPE_CHECKING:
 
 
 class AuthSession(Base):
+    """One active hashed session token per user."""
+
     __tablename__ = "sessions"
 
     id: Mapped[int] = mapped_column(primary_key=True)

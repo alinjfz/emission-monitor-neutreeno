@@ -1,3 +1,5 @@
+"""Core submission entity plus database-enforced domain constraints."""
+
 from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
@@ -28,6 +30,8 @@ class UnitCode(StrEnum):
 
 
 class FootprintSubmission(Base):
+    """A versioned product-footprint record moving through the review workflow."""
+
     __tablename__ = "footprint_submissions"
     __table_args__ = (
         CheckConstraint(
@@ -50,10 +54,13 @@ class FootprintSubmission(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), index=True)
     status: Mapped[str] = mapped_column(String(20), default=SubmissionStatus.NEW.value)
+    # Fixed-point integers avoid SQLite floating-point drift.
+    # Python still sees a Decimal because ScaledDecimal handles the conversion.
     footprint_value: Mapped[Decimal] = mapped_column(
         "footprint_value_micros", ScaledDecimal(6), nullable=False
     )
     unit_code: Mapped[str] = mapped_column(String(20))
+    # One basis point is 0.01%, so two percentage decimals scale by 100.
     uncertainty: Mapped[Decimal] = mapped_column(
         "uncertainty_basis_points", ScaledDecimal(2), nullable=False
     )

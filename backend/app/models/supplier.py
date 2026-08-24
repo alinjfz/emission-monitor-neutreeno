@@ -1,3 +1,5 @@
+"""Supplier catalog entity."""
+
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -12,6 +14,8 @@ if TYPE_CHECKING:
 
 
 class Supplier(Base):
+    """A normalized supplier shared by products and submissions."""
+
     __tablename__ = "suppliers"
 
     id: Mapped[int] = mapped_column(primary_key=True)

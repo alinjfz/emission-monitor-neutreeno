@@ -1,3 +1,5 @@
+"""Thin authentication routes: HTTP details here, account logic in the service."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response, status
@@ -13,6 +15,7 @@ router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
 
 def set_session_cookie(response: Response, token: str, settings: Settings) -> None:
+    """Set the raw session credential in a JavaScript-inaccessible cookie."""
     response.set_cookie(
         key=settings.cookie_name,
         value=token,
@@ -31,6 +34,7 @@ def register(
     db: Annotated[Session, Depends(get_db)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> UserOut:
+    """Create a reviewer account, issue its session, and set the cookie."""
     user, token = register_user(db, payload, settings)
     set_session_cookie(response, token, settings)
     return UserOut.model_validate(user)
@@ -43,6 +47,7 @@ def login(
     db: Annotated[Session, Depends(get_db)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> UserOut:
+    """Authenticate credentials and replace any existing user session."""
     user, token = login_user(db, payload, settings)
     set_session_cookie(response, token, settings)
     return UserOut.model_validate(user)
@@ -56,6 +61,8 @@ def logout(
     settings: Annotated[Settings, Depends(get_settings)],
     _origin: Annotated[None, Depends(require_allowed_origin)],
 ) -> Response:
+    """Revoke the current session and expire its browser cookie."""
+    # Origin validation protects this cookie-authenticated state-changing request.
     logout_user(db, request.cookies.get(settings.cookie_name))
     response.delete_cookie(settings.cookie_name, path="/", samesite="lax")
     response.status_code = status.HTTP_204_NO_CONTENT
@@ -64,4 +71,5 @@ def logout(
 
 @router.get("/me", response_model=UserOut)
 def me(user: CurrentUser) -> UserOut:
+    """Return the authenticated user's public profile."""
     return UserOut.model_validate(user)

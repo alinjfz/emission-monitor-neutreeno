@@ -1,3 +1,5 @@
+"""Explicitly gated development-only maintenance endpoints."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response, status
@@ -20,7 +22,9 @@ def reseed(
     settings: Annotated[Settings, Depends(get_settings)],
     _origin: Annotated[None, Depends(require_allowed_origin)],
 ) -> Response:
+    """Reset demo data when the explicitly enabled development flag permits it."""
     if not settings.enable_database_reseed:
+        # A 404 hides an intentionally disabled debug surface from production clients.
         raise AppError(404, "not_found", "This endpoint is not available.")
 
     reseed_database(db)

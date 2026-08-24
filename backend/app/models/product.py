@@ -1,3 +1,5 @@
+"""Supplier-scoped product catalog entity."""
+
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -13,6 +15,8 @@ if TYPE_CHECKING:
 
 
 class Product(Base):
+    """A product code is unique only within its supplier's catalog."""
+
     __tablename__ = "products"
     __table_args__ = (UniqueConstraint("supplier_id", "code", name="uq_products_supplier_code"),)
 

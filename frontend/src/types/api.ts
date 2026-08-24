@@ -1,3 +1,9 @@
+/**
+ * Central mirror of the server's JSON contract.
+ *
+ * Server field names intentionally remain snake_case. Exact decimal values are
+ * strings so JavaScript never introduces floating-point rounding.
+ */
 export type SubmissionStatus = 'new' | 'pending' | 'approved' | 'rejected'
 export type StatusFilter = 'all' | SubmissionStatus
 export type UnitCode = 'per_item' | 'per_kg'
@@ -55,8 +61,10 @@ export interface Submission {
   version: number
   product: Product
   supplier: Supplier
+  // Exact six-decimal value; do not convert to Number.
   footprint_value: string
   unit_code: UnitCode
+  // Exact percentage with up to two decimal places.
   uncertainty: string
   period_start: string
   period_end: string

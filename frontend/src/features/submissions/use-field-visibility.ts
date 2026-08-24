@@ -1,3 +1,4 @@
+/** Persisted display preferences for optional table and card fields. */
 import { useCallback, useState } from 'react'
 
 export const OPTIONAL_FIELDS = [
@@ -43,15 +44,19 @@ const defaults: FieldVisibility = {
   latest_review: false,
 }
 
+/** Restore saved visibility while filling newly introduced fields from defaults. */
 function initialVisibility(): FieldVisibility {
   try {
+    // Merge lets newly introduced fields receive defaults for existing users.
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as Partial<FieldVisibility>
     return { ...defaults, ...stored }
   } catch {
+    // Corrupt or manually edited local storage must not prevent the page from loading.
     return defaults
   }
 }
 
+/** Expose persisted optional-field visibility and a typed update operation. */
 export function useFieldVisibility() {
   const [visibility, setVisibility] = useState<FieldVisibility>(initialVisibility)
 

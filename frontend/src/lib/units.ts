@@ -1,3 +1,4 @@
+/** Human-readable labels for the API's stable unit codes. */
 import type { UnitCode } from '@/types/api'
 
 export const UNIT_LABELS: Record<UnitCode, string> = {

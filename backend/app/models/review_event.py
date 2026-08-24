@@ -1,3 +1,5 @@
+"""Append-only audit events for submission review activity."""
+
 from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
@@ -20,6 +22,8 @@ class ReviewAction(StrEnum):
 
 
 class ReviewEvent(Base):
+    """Who performed a review action, when, and with which optional comment."""
+
     __tablename__ = "review_events"
     __table_args__ = (
         CheckConstraint(
@@ -27,6 +31,8 @@ class ReviewEvent(Base):
         ),
         Index("ix_review_events_submission_created", "submission_id", "created_at"),
         Index(
+            # Application logic handles the normal path; this partial unique index
+            # preserves exactly-one-opened even under concurrent requests.
             "uq_review_events_one_opened_per_submission",
             "submission_id",
             unique=True,

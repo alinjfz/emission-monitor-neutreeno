@@ -1,3 +1,4 @@
+/** Shared presentational shell for login and registration forms. */
 import type { PropsWithChildren, ReactNode } from 'react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,6 +9,7 @@ interface AuthLayoutProps extends PropsWithChildren {
   footer: ReactNode
 }
 
+/** Render the shared centered card used by authentication screens. */
 export function AuthLayout({ title, description, footer, children }: AuthLayoutProps) {
   return (
     <main className="grid min-h-screen place-items-center bg-[#fafafa] px-4 py-10">

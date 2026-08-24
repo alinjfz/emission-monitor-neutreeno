@@ -18,6 +18,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    """Create catalog, authentication, submission, and audit tables."""
     op.create_table(
         "users",
         sa.Column("id", sa.Integer(), primary_key=True),
@@ -71,6 +72,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("product_id", sa.Integer(), sa.ForeignKey("products.id"), nullable=False),
         sa.Column("status", sa.String(20), nullable=False),
+        # Exact decimals are represented by scaled integers, never SQLite REAL.
         sa.Column("footprint_value_micros", sa.BigInteger(), nullable=False),
         sa.Column("unit_code", sa.String(20), nullable=False),
         sa.Column("uncertainty_basis_points", sa.BigInteger(), nullable=False),
@@ -123,6 +125,7 @@ def upgrade() -> None:
         ["submission_id", "created_at"],
     )
     op.create_index(
+        # SQLite's partial unique index is the final guard for concurrent opens.
         "uq_review_events_one_opened_per_submission",
         "review_events",
         ["submission_id"],
@@ -132,6 +135,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Drop objects in reverse dependency order."""
     op.drop_index("uq_review_events_one_opened_per_submission", table_name="review_events")
     op.drop_index("ix_review_events_submission_created", table_name="review_events")
     op.drop_table("review_events")

@@ -1,3 +1,9 @@
+"""Submission use cases, query composition, and review state transitions.
+
+Routes delegate here so database writes and related audit events share explicit
+transaction boundaries. Private helpers also keep ORM-to-API mapping in one place.
+"""
+
 from collections.abc import Sequence
 from typing import Literal
 
@@ -43,6 +49,7 @@ Direction = Literal["asc", "desc"]
 
 
 def _load_options():
+    """Eager-load everything the response mappers need after the session query."""
     return (
         joinedload(FootprintSubmission.product).joinedload(Product.supplier),
         selectinload(FootprintSubmission.review_events).joinedload(ReviewEvent.reviewer),
@@ -50,6 +57,7 @@ def _load_options():
 
 
 def _event_out(event: ReviewEvent) -> ReviewEventOut:
+    """Map an ORM audit event to the intentionally smaller public reviewer shape."""
     return ReviewEventOut(
         id=event.id,
         action=event.action,
@@ -60,6 +68,7 @@ def _event_out(event: ReviewEvent) -> ReviewEventOut:
 
 
 def _summary_out(submission: FootprintSubmission) -> SubmissionSummaryOut:
+    """Derive list output, including activity fields that are not stored columns."""
     history = sorted(
         submission.review_events, key=lambda event: (event.created_at, event.id), reverse=True
     )
@@ -85,11 +94,13 @@ def _summary_out(submission: FootprintSubmission) -> SubmissionSummaryOut:
         submitted_at=submission.submitted_at,
         updated_at=submission.updated_at,
         last_modified_at=history[0].created_at if history else submission.submitted_at,
+        # The newest event is enough for list context; detail returns the full history.
         latest_review=_event_out(history[0]) if history else None,
     )
 
 
 def _detail_out(submission: FootprintSubmission) -> SubmissionDetailOut:
+    """Extend summary output with the complete newest-first event history."""
     summary = _summary_out(submission)
     history = sorted(
         submission.review_events, key=lambda event: (event.created_at, event.id), reverse=True
@@ -101,6 +112,7 @@ def _detail_out(submission: FootprintSubmission) -> SubmissionDetailOut:
 
 
 def _get_submission(db: Session, submission_id: int) -> FootprintSubmission:
+    """Load a response-ready submission or translate absence to the API's 404."""
     submission = db.scalar(
         select(FootprintSubmission)
         .options(*_load_options())
@@ -112,6 +124,7 @@ def _get_submission(db: Session, submission_id: int) -> FootprintSubmission:
 
 
 def get_submission(db: Session, submission_id: int) -> SubmissionDetailOut:
+    """Return public detail output for one persisted submission."""
     return _detail_out(_get_submission(db, submission_id))
 
 
@@ -123,6 +136,11 @@ def _resolve_product(
     product_code: str,
     current: FootprintSubmission | None = None,
 ) -> Product:
+    """Resolve catalog data without mutating a product shared by other submissions.
+
+    An unshared current product may be edited in place. Shared products are reused
+    only when supplier, code, and name agree; conflicting identities return HTTP 409.
+    """
     supplier = db.scalar(select(Supplier).where(func.lower(Supplier.name) == supplier_name.lower()))
     if supplier is None:
         supplier = Supplier(name=supplier_name)
@@ -173,6 +191,7 @@ def _resolve_product(
 
 
 def create_submission(db: Session, payload: SubmissionCreateRequest) -> SubmissionDetailOut:
+    """Create a system-initialized ``new`` submission from editable user fields."""
     product = _resolve_product(
         db,
         supplier_name=payload.supplier_name,
@@ -203,6 +222,7 @@ def update_submission(
     submission_id: int,
     payload: SubmissionUpdateRequest,
 ) -> SubmissionDetailOut:
+    """Replace editable fields and increment the system-managed version counter."""
     current = _get_submission(db, submission_id)
     product = _resolve_product(
         db,
@@ -213,6 +233,8 @@ def update_submission(
     )
     changed_at = utc_now()
     db.execute(
+        # This product deliberately uses last-write-wins for edits; review decisions
+        # use optimistic concurrency below because overwriting them is riskier.
         update(FootprintSubmission)
         .where(FootprintSubmission.id == submission_id)
         .values(
@@ -233,6 +255,7 @@ def update_submission(
 
 
 def delete_submission(db: Session, submission_id: int) -> None:
+    """Delete a submission and its review history in one commit."""
     if (
         db.scalar(select(FootprintSubmission.id).where(FootprintSubmission.id == submission_id))
         is None
@@ -244,10 +267,12 @@ def delete_submission(db: Session, submission_id: int) -> None:
 
 
 def _escape_like(value: str) -> str:
+    """Escape LIKE metacharacters so user search is literal, not wildcard syntax."""
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 def _search_conditions(search: str | None) -> Sequence:
+    """Build reusable, parameterized search conditions for list and count queries."""
     if not search:
         return ()
     pattern = f"%{_escape_like(search.strip())}%"
@@ -270,10 +295,12 @@ def list_submissions(
     page: int,
     page_size: int,
 ) -> SubmissionListOut:
+    """Return a filtered page plus counts calculated across the current search."""
     search_conditions = _search_conditions(search)
     base_join = select(FootprintSubmission).join(FootprintSubmission.product).join(Product.supplier)
 
     count_rows = db.execute(
+        # Status tabs keep the same search but intentionally ignore the active status.
         select(FootprintSubmission.status, func.count(FootprintSubmission.id))
         .join(FootprintSubmission.product)
         .join(Product.supplier)
@@ -305,6 +332,7 @@ def list_submissions(
 
     statement = base_join.options(*_load_options()).where(*conditions)
     latest_review_at = (
+        # last_modified_at is derived from append-only history, never duplicated in a column.
         select(func.max(ReviewEvent.created_at))
         .where(ReviewEvent.submission_id == FootprintSubmission.id)
         .correlate(FootprintSubmission)
@@ -312,6 +340,7 @@ def list_submissions(
     )
     last_modified_at = func.coalesce(latest_review_at, FootprintSubmission.submitted_at)
     if sort == "queue":
+        # Workable items come first oldest-first; resolved items follow newest-first.
         unresolved = (SubmissionStatus.NEW.value, SubmissionStatus.PENDING.value)
         statement = statement.order_by(
             case((FootprintSubmission.status.in_(unresolved), 0), else_=1),
@@ -322,6 +351,7 @@ def list_submissions(
             FootprintSubmission.id.asc(),
         )
     else:
+        # Mapping an allowlisted name to an expression avoids accepting raw SQL sort input.
         sort_columns = {
             "product": Product.name,
             "supplier": Supplier.name,
@@ -356,6 +386,11 @@ def list_submissions(
 
 
 def open_submission(db: Session, submission_id: int, reviewer: User) -> SubmissionDetailOut:
+    """Open a submission with a compare-and-swap ``new`` to ``pending`` update.
+
+    The winning request commits the status change and single ``opened`` event together.
+    Concurrent opens become no-ops; a missing submission returns HTTP 404.
+    """
     changed_at = utc_now()
     result = db.execute(
         update(FootprintSubmission)
@@ -395,7 +430,14 @@ def review_submission(
     reviewer: User,
     payload: ReviewRequest,
 ) -> SubmissionDetailOut:
+    """Apply a decision only when ``expected_version`` matches the stored row.
+
+    The status update and audit event commit atomically. A missing row returns HTTP
+    404; a stale version returns HTTP 409 with the latest submission for recovery.
+    """
     changed_at = utc_now()
+    # The version check belongs in the UPDATE itself; checking first
+    # would leave a race between the SELECT and UPDATE (a time-of-check/time-of-use bug).
     result = db.execute(
         update(FootprintSubmission)
         .where(

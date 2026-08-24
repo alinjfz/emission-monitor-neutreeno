@@ -1,3 +1,4 @@
+/** Small server-state hook for list loading, retry, cancellation, and stale responses. */
 import { useCallback, useEffect, useState } from 'react'
 
 import { ApiError } from '@/lib/api-client'
@@ -14,6 +15,12 @@ export interface SubmissionQuery {
   pageSize: number
 }
 
+/**
+ * Fetch one queue page while preventing obsolete responses from appearing current.
+ *
+ * A key ties state to exact query parameters, old data remains visible during refresh,
+ * and effect cleanup aborts requests superseded by navigation or retry.
+ */
 export function useSubmissionsQuery(query: SubmissionQuery, refreshKey: number) {
   const [retryKey, setRetryKey] = useState(0)
   const queryKey = [query.status, query.search, query.sort, query.direction, query.page, query.pageSize, refreshKey, retryKey].join(':')
@@ -24,6 +31,7 @@ export function useSubmissionsQuery(query: SubmissionQuery, refreshKey: number) 
   })
 
   useEffect(() => {
+    // Aborting saves work; queryKey separately prevents stale UI state.
     const controller = new AbortController()
     const params = new URLSearchParams({
       status: query.status,

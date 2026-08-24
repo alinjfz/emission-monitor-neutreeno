@@ -4,6 +4,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Expose semantic CSS variables as Tailwind tokens used by shared UI primitives. */
 @theme inline {
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-heading: var(--font-sans);
@@ -33,6 +34,7 @@
 }
 
 :root {
+  /* Product colors are centralized so status/risk meaning stays consistent. */
   --background: #ffffff;
   --foreground: #0a0a0a;
   --card: #ffffff;
@@ -93,6 +95,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* Preserve state feedback while respecting the user's motion preference. */
   *,
   *::before,
   *::after {

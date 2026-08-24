@@ -1,5 +1,6 @@
 services:
   app:
+    # The default production-style service builds React and serves it from FastAPI.
     build:
       context: .
       dockerfile: Dockerfile
@@ -11,6 +12,7 @@ services:
     ports:
       - "${APP_PORT:-8000}:8000"
     volumes:
+      # Application data survives normal container replacement.
       - emissions_data:/data
     healthcheck:
       test:

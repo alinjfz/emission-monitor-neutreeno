@@ -1,3 +1,4 @@
+/** Typed authentication calls built on the application's single fetch wrapper. */
 import { apiFetch } from '@/lib/api-client'
 import type { User } from '@/types/api'
 

@@ -1,3 +1,5 @@
+"""Transactional database maintenance use cases."""
+
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
@@ -11,7 +13,9 @@ from app.models.user import User
 
 
 def reseed_database(db: Session) -> None:
+    """Replace all mutable demo data while preserving one transaction boundary."""
     try:
+        # Delete children before parents so this remains valid with foreign keys on.
         for model in (
             ReviewEvent,
             AuthSession,
@@ -25,5 +29,6 @@ def reseed_database(db: Session) -> None:
         db.expunge_all()
         seed_database(db)
     except Exception:
+        # Never leave callers with a partially cleared demo database.
         db.rollback()
         raise

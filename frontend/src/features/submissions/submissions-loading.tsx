@@ -1,6 +1,8 @@
+/** Shape-matched skeletons that reduce layout shift while the queue loads. */
 import { Skeleton } from '@/components/ui/skeleton'
 import type { ViewMode } from '@/types/api'
 
+/** Render loading placeholders matched to the selected table or card layout. */
 export function SubmissionsLoading({ view }: { view: ViewMode }) {
   if (view === 'cards') {
     return (

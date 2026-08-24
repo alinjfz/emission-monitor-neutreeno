@@ -1,3 +1,4 @@
+/** Accessible page navigation and page-size controls. */
 import {
   Pagination,
   PaginationContent,
@@ -8,12 +9,14 @@ import {
 } from '@/components/ui/pagination'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
+/** Build a compact sliding window of page numbers around the current page. */
 function visiblePages(page: number, totalPages: number): number[] {
   if (totalPages <= 5) return Array.from({ length: totalPages }, (_, index) => index + 1)
   const start = Math.max(1, Math.min(page - 2, totalPages - 4))
   return Array.from({ length: 5 }, (_, index) => start + index)
 }
 
+/** Render bounded page navigation and the page-size preference control. */
 export function PaginationControls({
   page,
   pageSize,

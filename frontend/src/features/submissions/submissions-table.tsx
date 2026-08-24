@@ -1,3 +1,4 @@
+/** Dense, sortable desktop representation of submission summaries. */
 import type { ReactNode } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpDown, TriangleAlert } from 'lucide-react'
 
@@ -22,6 +23,7 @@ interface SubmissionsTableProps {
   renderReview: (submission: Submission) => ReactNode
 }
 
+/** Render a column header that reports and changes its server-side sort state. */
 function SortHeader({
   label,
   name,
@@ -35,6 +37,7 @@ function SortHeader({
   direction: SortDirection
   onSort: (name: SortName) => void
 }) {
+  // Clicking the active column toggles direction in the page coordinator.
   const active = name === activeSort
   const Icon = !active ? ArrowUpDown : direction === 'asc' ? ArrowUp : ArrowDown
   return (
@@ -51,6 +54,7 @@ function SortHeader({
   )
 }
 
+/** Render a dense queue table using the user's optional-field visibility choices. */
 export function SubmissionsTable({
   submissions,
   visibility,

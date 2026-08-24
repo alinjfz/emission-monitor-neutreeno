@@ -1,3 +1,4 @@
+/** Login form that restores the protected URL the user originally requested. */
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 
@@ -11,6 +12,7 @@ import { ApiError } from '@/lib/api-client'
 import { AuthLayout } from './auth-layout'
 import { useAuth } from './use-auth'
 
+/** Collect credentials, authenticate, and restore the originally requested route. */
 export function LoginPage() {
   const { user, login } = useAuth()
   const location = useLocation()
@@ -23,8 +25,10 @@ export function LoginPage() {
   if (user) return <Navigate to="/submissions" replace />
 
   const requested = (location.state as { from?: string } | null)?.from
+  // Ignore unexpected router state; protected routes store an app-relative path here.
   const destination = requested?.startsWith('/') ? requested : '/submissions'
 
+  /** Submit credentials while keeping request and failure state local to the form. */
   async function submit(event: FormEvent) {
     event.preventDefault()
     setError('')

@@ -1,3 +1,5 @@
+"""UTC clock abstraction shared by persistence and services."""
+
 from datetime import UTC, datetime
 
 

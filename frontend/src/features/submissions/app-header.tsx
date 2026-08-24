@@ -1,3 +1,4 @@
+/** Account menu plus an explicitly enabled destructive demo reset workflow. */
 import { useState } from 'react'
 import { DatabaseBackup, LogOut, Plus } from 'lucide-react'
 import { useNavigate } from 'react-router'
@@ -25,6 +26,7 @@ import { ApiError } from '@/lib/api-client'
 
 import { developerApi } from './developer-api'
 
+/** Render account actions, submission creation, logout, and optional demo reset. */
 export function AppHeader({ onAdd }: { onAdd: () => void }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -32,6 +34,7 @@ export function AppHeader({ onAdd }: { onAdd: () => void }) {
   const [reseeding, setReseeding] = useState(false)
   const reseedEnabled = import.meta.env.VITE_ENABLE_DATABASE_RESEED === 'true'
 
+  /** Revoke the session before replacing protected UI with the login route. */
   async function handleLogout() {
     try {
       await logout()
@@ -41,10 +44,12 @@ export function AppHeader({ onAdd }: { onAdd: () => void }) {
     }
   }
 
+  /** Reset demo persistence and reload because all sessions become invalid. */
   async function handleReseed() {
     setReseeding(true)
     try {
       await developerApi.reseedDatabase()
+      // Reseeding invalidates every session, so restart at a clean login document.
       window.location.replace('/login')
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : 'Unable to reseed the database.')

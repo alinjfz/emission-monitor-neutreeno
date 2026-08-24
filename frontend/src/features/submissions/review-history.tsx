@@ -1,3 +1,4 @@
+/** Newest-first rendering of the append-only review audit trail. */
 import { useState } from 'react'
 import { ChevronDown, MessageSquareText } from 'lucide-react'
 
@@ -8,6 +9,7 @@ import type { ReviewEvent } from '@/types/api'
 
 import { StatusBadge } from './status-badge'
 
+/** Render an expandable newest-first audit trail for review events. */
 export function ReviewHistory({ events }: { events: ReviewEvent[] }) {
   const [open, setOpen] = useState(true)
   return (

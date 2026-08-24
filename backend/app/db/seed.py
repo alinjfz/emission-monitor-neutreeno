@@ -1,3 +1,5 @@
+"""Deterministic, idempotent demo data for local development and tests."""
+
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 
@@ -76,6 +78,7 @@ METHODOLOGIES = [
 
 
 def seed_database(db: Session) -> None:
+    """Add missing demo fixtures without duplicating an already-seeded database."""
     demo = db.scalar(select(User).where(User.email == "a@a.a"))
     if demo is None:
         db.add(
@@ -93,6 +96,8 @@ def seed_database(db: Session) -> None:
         db.flush()
         submitted_base = datetime(2025, 1, 5, 9, 0)
         for index, product_name in enumerate(PRODUCT_NAMES):
+            # Formulas derive every varying value from the index, so repeated test
+            # databases receive the same useful mix without randomness.
             product = Product(
                 supplier_id=suppliers[index % len(suppliers)].id,
                 name=product_name,
@@ -124,6 +129,7 @@ def seed_database(db: Session) -> None:
 
 
 def seed() -> None:
+    """CLI entry point that owns and closes its database session."""
     with SessionLocal() as db:
         seed_database(db)
 

@@ -1,3 +1,4 @@
+/** Responsive card-grid collection for the mobile-friendly queue view. */
 import type { ReactNode } from 'react'
 
 import type { Submission } from '@/types/api'
@@ -5,6 +6,7 @@ import type { Submission } from '@/types/api'
 import { SubmissionCard } from './submission-card'
 import type { FieldVisibility } from './use-field-visibility'
 
+/** Render submission summaries as a responsive collection of cards. */
 export function SubmissionsGrid({
   submissions,
   visibility,

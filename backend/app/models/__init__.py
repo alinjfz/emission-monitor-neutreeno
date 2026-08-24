@@ -1,3 +1,5 @@
+"""Public model exports and metadata registration surface."""
+
 from app.models.footprint_submission import FootprintSubmission, SubmissionStatus, UnitCode
 from app.models.product import Product
 from app.models.review_event import ReviewAction, ReviewEvent

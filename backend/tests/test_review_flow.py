@@ -1,3 +1,5 @@
+"""High-value API flows covering security, data integrity, and concurrency."""
+
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 
@@ -5,6 +7,7 @@ from fastapi.testclient import TestClient
 
 
 def test_complete_review_flow_and_concurrent_open(clients: tuple[TestClient, TestClient]) -> None:
+    """Exercise the primary reviewer journey plus competing open/review requests."""
     first, second = clients
 
     login = first.post("/api/auth/login", json={"email": "a@a.a", "password": "1234"})
@@ -37,10 +40,12 @@ def test_complete_review_flow_and_concurrent_open(clients: tuple[TestClient, Tes
     barrier = Barrier(2)
 
     def open_at_once(client: TestClient) -> int:
+        """Release both test clients together and return the open response status."""
         barrier.wait()
         return client.post(f"/api/submissions/{submission_id}/open").status_code
 
     with ThreadPoolExecutor(max_workers=2) as executor:
+        # Releasing both workers together makes the exactly-once open invariant observable.
         statuses = list(executor.map(open_at_once, (first, second)))
     assert statuses == [200, 200]
 
@@ -66,6 +71,7 @@ def test_complete_review_flow_and_concurrent_open(clients: tuple[TestClient, Tes
     assert approved["review_history"][0]["comment"] == "Method and reporting period verified."
 
     stale = second.post(
+        # The second reviewer still holds version 2 after the first committed version 3.
         f"/api/submissions/{submission_id}/reviews",
         json={"action": "rejected", "expected_version": 2},
     )
@@ -95,6 +101,7 @@ def test_complete_review_flow_and_concurrent_open(clients: tuple[TestClient, Tes
     assert latest_activity.json()["items"][0]["id"] == submission_id
 
     literal_wildcards = first.get("/api/submissions", params={"search": "%_\\"})
+    # LIKE metacharacters are searched literally rather than expanding the result set.
     assert literal_wildcards.status_code == 200
     assert literal_wildcards.json()["total"] == 0
 
@@ -112,6 +119,7 @@ def test_complete_review_flow_and_concurrent_open(clients: tuple[TestClient, Tes
 
 
 def test_submission_create_update_and_delete(clients: tuple[TestClient, TestClient]) -> None:
+    """Cover system-owned fields and shared-versus-unshared product catalog behavior."""
     client, _second = clients
     assert (
         client.post("/api/auth/login", json={"email": "a@a.a", "password": "1234"}).status_code
@@ -131,6 +139,7 @@ def test_submission_create_update_and_delete(clients: tuple[TestClient, TestClie
         "status": "approved",
         "version": 99,
     }
+    # Extra system fields are ignored; clients cannot choose initial status/version.
     created_response = client.post("/api/submissions", json=payload)
     assert created_response.status_code == 201
     created = created_response.json()
@@ -186,6 +195,8 @@ def test_submission_create_update_and_delete(clients: tuple[TestClient, TestClie
     assert shared_response.status_code == 201
     shared = shared_response.json()
     reassigned_response = client.patch(
+        # Once a product is shared, editing creates/reuses another row instead of
+        # renaming the product beneath the first submission.
         f"/api/submissions/{shared['id']}",
         json={
             **payload,
@@ -214,6 +225,7 @@ def test_submission_create_update_and_delete(clients: tuple[TestClient, TestClie
 
 
 def test_submission_write_validation(clients: tuple[TestClient, TestClient]) -> None:
+    """Reject excess precision, out-of-range uncertainty, and reversed periods."""
     client, _second = clients
     assert (
         client.post("/api/auth/login", json={"email": "a@a.a", "password": "1234"}).status_code

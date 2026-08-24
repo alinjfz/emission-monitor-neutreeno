@@ -1,3 +1,4 @@
+/** Public routes, authenticated route protection, and session restoration UI. */
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router'
 
 import { AppProviders } from '@/app/providers'
@@ -7,6 +8,7 @@ import { RegisterPage } from '@/features/auth/register-page'
 import { useAuth } from '@/features/auth/use-auth'
 import { SubmissionsPage } from '@/features/submissions/submissions-page'
 
+/** Gate the submissions route until session restoration finishes. */
 function ProtectedRoute() {
   const { user, loading } = useAuth()
   const location = useLocation()
@@ -21,6 +23,7 @@ function ProtectedRoute() {
     )
   }
   if (!user) {
+    // Keep the attempted URL so login can return the user to the same queue state.
     return (
       <Navigate
         to="/login"
@@ -32,6 +35,7 @@ function ProtectedRoute() {
   return <SubmissionsPage />
 }
 
+/** Render a small fallback for routes outside the application surface. */
 function NotFound() {
   return (
     <main className="grid min-h-screen place-items-center px-6 text-center">
@@ -46,6 +50,7 @@ function NotFound() {
   )
 }
 
+/** Define public authentication routes and the protected submission route. */
 export function AppRouter() {
   return (
     <BrowserRouter>

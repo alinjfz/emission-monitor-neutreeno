@@ -1,5 +1,7 @@
+/** Map read-only detail output back to the deliberately smaller editable shape. */
 import type { SubmissionDetail, SubmissionWriteInput } from '@/types/api'
 
+/** Select only user-editable values from a full submission detail response. */
 export function submissionValues(detail: SubmissionDetail): SubmissionWriteInput {
   return {
     supplier_name: detail.supplier.name,

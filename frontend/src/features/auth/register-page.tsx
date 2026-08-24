@@ -1,3 +1,4 @@
+/** Registration form with quick client feedback and authoritative API errors. */
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 
@@ -11,6 +12,7 @@ import { ApiError } from '@/lib/api-client'
 import { AuthLayout } from './auth-layout'
 import { useAuth } from './use-auth'
 
+/** Validate registration input, create the account, and continue into the app. */
 export function RegisterPage() {
   const { user, register } = useAuth()
   const location = useLocation()
@@ -26,9 +28,11 @@ export function RegisterPage() {
   const requested = (location.state as { from?: string } | null)?.from
   const destination = requested?.startsWith('/') ? requested : '/submissions'
 
+  /** Validate quick client rules before submitting authoritative server validation. */
   async function submit(event: FormEvent) {
     event.preventDefault()
     const clientErrors: Record<string, string> = {}
+    // These checks improve responsiveness; Pydantic remains the security boundary.
     if (!name.trim()) clientErrors.name = 'Enter your name.'
     if (!email.trim()) clientErrors.email = 'Enter your email address.'
     if (password.length < 4) clientErrors.password = 'Use at least 4 characters.'
@@ -43,6 +47,7 @@ export function RegisterPage() {
       navigate(destination, { replace: true })
     } catch (caught) {
       if (caught instanceof ApiError) {
+        // The API returns arrays per field; this compact form shows the first message.
         const fields = Object.fromEntries(
           Object.entries(caught.fieldErrors).map(([key, messages]) => [key, messages[0]]),
         )

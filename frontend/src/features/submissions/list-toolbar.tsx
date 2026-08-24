@@ -1,3 +1,4 @@
+/** Search, status, sorting, view, and field-visibility controls for the queue. */
 import { ArrowDown, ArrowUp, Columns3, Grid2X2, List, Search } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -30,6 +31,7 @@ const sortOptions: Array<{ value: SortName; label: string }> = [
   { value: 'last_modified_at', label: 'Last modified' },
 ]
 
+/** Coordinate controls that change queue URL state or display preferences. */
 export function ListToolbar({
   search,
   status,

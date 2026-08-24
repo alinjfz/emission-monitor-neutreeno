@@ -1,3 +1,4 @@
+/** Detail, edit, review-history, and confirmed-delete states for one submission. */
 import { useState, type ReactNode } from 'react'
 import { CalendarDays, Clock3, Leaf, Package, Pencil, TriangleAlert } from 'lucide-react'
 import { toast } from 'sonner'
@@ -26,6 +27,7 @@ import { submissionValues } from './submission-values'
 import { StatusBadge } from './status-badge'
 import { submissionsApi } from './submissions-api'
 
+/** Render stable skeleton geometry while submission detail loads. */
 function DetailLoading() {
   return (
     <div className="space-y-5 py-2" aria-label="Loading submission detail">
@@ -37,6 +39,7 @@ function DetailLoading() {
   )
 }
 
+/** Render one icon-labelled fact in the detail definition list. */
 function DetailFact({ icon: Icon, label, children }: { icon: typeof Leaf; label: string; children: ReactNode }) {
   return (
     <div className="rounded-lg border p-3">
@@ -46,6 +49,7 @@ function DetailFact({ icon: Icon, label, children }: { icon: typeof Leaf; label:
   )
 }
 
+/** Coordinate detail, edit, review, error, and confirmed-delete dialog states. */
 export function SubmissionDialog({
   selected,
   detail,
@@ -72,12 +76,14 @@ export function SubmissionDialog({
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
 
+  /** Delete the loaded submission while keeping confirmation UI locked in flight. */
   async function handleDelete() {
     if (!detail) return
     setDeleting(true)
     setDeleteError('')
     try {
       await submissionsApi.delete(detail.id)
+      // Notify the page only after the server has removed the record and history.
       toast.success('Submission deleted')
       setDeleteConfirmOpen(false)
       setEditing(false)

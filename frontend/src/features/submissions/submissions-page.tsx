@@ -1,3 +1,9 @@
+/**
+ * Submission feature coordinator.
+ *
+ * Shareable queue/detail state lives in the URL, display preferences live in
+ * localStorage, and unsaved comment drafts remain local React state.
+ */
 import { useEffect, useRef, useState } from 'react'
 import { Inbox, RefreshCw, SearchX } from 'lucide-react'
 import { useSearchParams } from 'react-router'
@@ -31,13 +37,17 @@ import { useSubmissionsQuery } from './use-submissions-query'
 const statusValues: StatusFilter[] = ['all', 'new', 'pending', 'approved', 'rejected']
 const sortValues: SortName[] = ['queue', 'product', 'supplier', 'status', 'footprint', 'uncertainty', 'period_start', 'period_end', 'duration', 'submitted_at', 'last_modified_at']
 
+/** Parse a positive integer URL parameter or return a safe fallback. */
 function positiveInteger(value: string | null, fallback: number): number {
+  // Parse untrusted URL input without allowing zero, negatives, or fractions.
   const parsed = Number(value)
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback
 }
 
+/** Own the review queue's URL, request, selection, draft, and dialog state. */
 export function SubmissionsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  // Every URL value is validated against the same finite vocabulary as the API.
   const statusParam = searchParams.get('status') as StatusFilter | null
   const sortParam = searchParams.get('sort') as SortName | null
   const directionParam = searchParams.get('direction') as SortDirection | null
@@ -65,12 +75,15 @@ export function SubmissionsPage() {
     error: string
   }>({ key: '', detail: null, error: '' })
   const [drafts, setDrafts] = useState<Record<string, string>>({})
+  // Editor keys separate list and detail drafts for the same submission.
   const [expandedEditors, setExpandedEditors] = useState<Record<string, boolean>>({})
   const { visibility, setFieldVisible } = useFieldVisibility()
   const { data, loading, error, retry } = useSubmissionsQuery(
     { status, search, sort, direction, page, pageSize },
     refreshKey,
   )
+
+  /** Merge URL-state updates and reset pagination for queue-changing actions. */
   function updateParams(
     updates: Record<string, string | null>,
     { resetPage = true }: { resetPage?: boolean } = {},
@@ -85,6 +98,7 @@ export function SubmissionsPage() {
   }
 
   useEffect(() => {
+    // Deleting or filtering can make the current page invalid; canonicalize the URL.
     if (!data || loading) return
     const lastValidPage = Math.max(1, data.total_pages)
     if (page > lastValidPage) {
@@ -97,6 +111,7 @@ export function SubmissionsPage() {
   useEffect(() => {
     if (selected === null) return
     if (preloadedDetailRef.current?.id === selected) {
+      // A newly created record is already complete, avoiding an immediate duplicate fetch.
       const preloaded = preloadedDetailRef.current
       preloadedDetailRef.current = null
       setDetailState({ key: detailRequestKey, detail: preloaded, error: '' })
@@ -104,6 +119,7 @@ export function SubmissionsPage() {
       return
     }
     const controller = new AbortController()
+    // Opening the dialog is itself a state transition: new -> pending plus one audit event.
     submissionsApi
       .open(selected, controller.signal)
       .then((opened) => {
@@ -118,14 +134,17 @@ export function SubmissionsPage() {
     return () => controller.abort()
   }, [selected, detailRetryKey, detailRequestKey])
 
+  /** Store the selected submission in the URL without changing the current page. */
   function selectSubmission(id: number) {
     updateParams({ selected: String(id) }, { resetPage: false })
   }
 
+  /** Remove detail selection while preserving the surrounding queue context. */
   function closeDetail() {
     updateParams({ selected: null }, { resetPage: false })
   }
 
+  /** Select a sort or toggle direction when the active sortable column is repeated. */
   function handleSort(nextSort: SortName) {
     if (nextSort === sort && nextSort !== 'queue') {
       updateParams({ direction: direction === 'asc' ? 'desc' : 'asc' })
@@ -134,40 +153,48 @@ export function SubmissionsPage() {
     updateParams({ sort: nextSort, direction: 'asc' })
   }
 
+  /** Persist an unsaved comment draft under its surface-specific editor key. */
   function setDraft(editorKey: string, value: string) {
     setDrafts((current) => ({ ...current, [editorKey]: value }))
   }
 
+  /** Track whether one list or detail review editor is expanded. */
   function setExpanded(editorKey: string, value: boolean) {
     setExpandedEditors((current) => ({ ...current, [editorKey]: value }))
   }
 
+  /** Close reviewed detail when applicable and refresh the bounded queue. */
   function handleReviewSuccess(reviewed: SubmissionDetail) {
     if (selected === reviewed.id) closeDetail()
     setRefreshKey((current) => current + 1)
   }
 
+  /** Replace stale selected detail and refresh summaries after a version conflict. */
   function handleConflict(latest: SubmissionDetail) {
     if (selected === latest.id) setDetailState({ key: detailRequestKey, detail: latest, error: '' })
     setRefreshKey((current) => current + 1)
   }
 
+  /** Open a just-created detail from memory instead of immediately fetching it. */
   function handleCreated(created: SubmissionDetail) {
     setCreateOpen(false)
     preloadedDetailRef.current = created
     updateParams({ selected: String(created.id) }, { resetPage: false })
   }
 
+  /** Replace edited detail and refresh any matching list summary. */
   function handleUpdated(updated: SubmissionDetail) {
     setDetailState({ key: detailRequestKey, detail: updated, error: '' })
     setRefreshKey((current) => current + 1)
   }
 
+  /** Close deleted detail and reload the page/counts from the server. */
   function handleDeleted() {
     closeDetail()
     setRefreshKey((current) => current + 1)
   }
 
+  /** Build a controlled review composer with isolated list/detail draft state. */
   function renderReview(submission: Submission, surface: 'list' | 'detail' = 'list') {
     const editorKey = `${surface}:${submission.id}`
     return (

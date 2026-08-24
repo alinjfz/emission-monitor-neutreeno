@@ -1,3 +1,4 @@
+/** Controlled create/edit form that preserves decimal input as strings end to end. */
 import { useState, type FormEvent } from 'react'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -22,6 +23,7 @@ const blankValues: SubmissionWriteInput = {
   methodology: '',
 }
 
+/** Render the controlled fields shared by submission creation and editing. */
 export function SubmissionForm({
   initialValues,
   submitLabel,
@@ -42,11 +44,13 @@ export function SubmissionForm({
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
 
+  /** Update one typed form field and clear only its stale server error. */
   function setValue<Key extends keyof SubmissionWriteInput>(
     key: Key,
     value: SubmissionWriteInput[Key],
   ) {
     setValues((current) => ({ ...current, [key]: value }))
+    // Clear only the field the user is correcting; unrelated server errors remain.
     setFieldErrors((current) => {
       if (!current[key]) return current
       const next = { ...current }
@@ -55,11 +59,13 @@ export function SubmissionForm({
     })
   }
 
+  /** Validate the cross-field period rule and persist the current form values. */
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
     setFieldErrors({})
     if (values.period_end < values.period_start) {
+      // ISO date-only strings are lexicographically sortable in chronological order.
       setFieldErrors({ period_end: ['End date must be on or after the start date.'] })
       return
     }
@@ -69,6 +75,7 @@ export function SubmissionForm({
       onSaved(await onSave(values))
     } catch (caught) {
       if (caught instanceof ApiError) {
+        // Pydantic field paths map directly to the controlled input names.
         setError(caught.message)
         setFieldErrors(caught.fieldErrors)
       } else {
@@ -79,6 +86,7 @@ export function SubmissionForm({
     }
   }
 
+  /** Collapse all messages for one field into the shared field-error text shape. */
   function fieldError(name: keyof SubmissionWriteInput) {
     return fieldErrors[name]?.join(' ')
   }

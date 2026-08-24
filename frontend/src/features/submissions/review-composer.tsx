@@ -1,3 +1,4 @@
+/** Review decision control with local drafts and optimistic-conflict recovery. */
 import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent, type MouseEvent } from 'react'
 import { Check, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -23,6 +24,12 @@ interface ReviewComposerProps {
   className?: string
 }
 
+/**
+ * Submit a versioned approval or rejection with an optional comment.
+ *
+ * A successful decision clears the draft. HTTP 409 replaces stale submission data but
+ * deliberately keeps the reviewer's draft so it can be reconsidered and resubmitted.
+ */
 export function ReviewComposer({
   submission,
   draft,
@@ -40,6 +47,7 @@ export function ReviewComposer({
   useEffect(() => {
     if (!expanded) return
 
+    /** Collapse on an outside pointer without clearing the parent-owned draft. */
     function collapseOnOutsidePointer(event: PointerEvent) {
       if (event.target && !containerRef.current?.contains(event.target as Node)) {
         onExpandedChange(false)
@@ -50,10 +58,12 @@ export function ReviewComposer({
     return () => document.removeEventListener('pointerdown', collapseOnOutsidePointer)
   }, [expanded, onExpandedChange])
 
+  /** Keep editor interactions from triggering clickable parent rows or cards. */
   function stopPropagation(event: MouseEvent | KeyboardEvent) {
     event.stopPropagation()
   }
 
+  /** Handle textarea Escape behavior while containing its keyboard events. */
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     stopPropagation(event)
     if (event.key === 'Escape' && !draft) {
@@ -61,12 +71,14 @@ export function ReviewComposer({
     }
   }
 
+  /** Collapse when keyboard focus leaves every control in the composer. */
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     if (!event.currentTarget.contains(event.relatedTarget)) {
       onExpandedChange(false)
     }
   }
 
+  /** Submit a versioned decision and route conflicts back to the page coordinator. */
   async function decide(action: DecisionAction) {
     const comment = draft.trim() || null
     setError('')

@@ -1,3 +1,4 @@
+/** Dialog wrapper that configures SubmissionForm for creation. */
 import { toast } from 'sonner'
 
 import {
@@ -12,6 +13,7 @@ import type { SubmissionDetail } from '@/types/api'
 import { SubmissionForm } from './submission-form'
 import { submissionsApi } from './submissions-api'
 
+/** Present the shared form in create mode and return the created detail record. */
 export function CreateSubmissionDialog({
   open,
   onOpenChange,

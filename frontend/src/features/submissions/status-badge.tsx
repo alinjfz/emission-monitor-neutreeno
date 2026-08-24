@@ -1,3 +1,4 @@
+/** Consistent visual and text mapping for workflow status values. */
 import { CircleCheck, CircleDashed, CircleX, Clock3 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -11,6 +12,7 @@ const statusConfig = {
   rejected: { label: 'Rejected', icon: CircleX, className: 'border-red-200 bg-[var(--reject-bg)] text-[var(--reject-text)]' },
 } satisfies Record<SubmissionStatus, { label: string; icon: typeof CircleCheck; className: string }>
 
+/** Map a workflow status to its accessible icon, label, and visual variant. */
 export function StatusBadge({ status, className }: { status: SubmissionStatus; className?: string }) {
   const config = statusConfig[status]
   const Icon = config.icon

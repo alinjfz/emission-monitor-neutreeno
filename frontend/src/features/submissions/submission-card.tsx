@@ -1,3 +1,4 @@
+/** Responsive card representation of one submission summary. */
 import type { KeyboardEvent, ReactNode } from 'react'
 import { TriangleAlert } from 'lucide-react'
 
@@ -18,6 +19,7 @@ interface SubmissionCardProps {
   review: ReactNode
 }
 
+/** Render one label/value fact inside a submission card. */
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
@@ -27,7 +29,9 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
+/** Render an accessible keyboard-selectable summary card and review controls. */
 export function SubmissionCard({ submission, visibility, onSelect, review }: SubmissionCardProps) {
+  /** Open the card with the keyboard keys expected for a button-like surface. */
   function keyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
