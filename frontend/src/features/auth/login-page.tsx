@@ -1,43 +1,39 @@
-import { useState, type FormEvent } from "react"
-import { Link, Navigate, useLocation, useNavigate } from "react-router"
+import { useState, type FormEvent } from 'react'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Spinner } from "@/components/ui/spinner"
-import { ApiError } from "@/lib/api-client"
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Spinner } from '@/components/ui/spinner'
+import { ApiError } from '@/lib/api-client'
 
-import { AuthLayout } from "./auth-layout"
-import { useAuth } from "./use-auth"
+import { AuthLayout } from './auth-layout'
+import { useAuth } from './use-auth'
 
 export function LoginPage() {
   const { user, login } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   if (user) return <Navigate to="/submissions" replace />
 
   const requested = (location.state as { from?: string } | null)?.from
-  const destination = requested?.startsWith("/") ? requested : "/submissions"
+  const destination = requested?.startsWith('/') ? requested : '/submissions'
 
   async function submit(event: FormEvent) {
     event.preventDefault()
-    setError("")
+    setError('')
     setSubmitting(true)
     try {
       await login({ email, password })
       navigate(destination, { replace: true })
     } catch (caught) {
-      setError(
-        caught instanceof ApiError
-          ? caught.message
-          : "Unable to log in. Please try again."
-      )
+      setError(caught instanceof ApiError ? caught.message : 'Unable to log in. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -49,12 +45,8 @@ export function LoginPage() {
       description="Log in to review footprint submissions."
       footer={
         <>
-          Need an account?{" "}
-          <Link
-            className="font-medium text-foreground underline underline-offset-4"
-            to="/register"
-            state={location.state}
-          >
+          Need an account?{' '}
+          <Link className="font-medium text-foreground underline underline-offset-4" to="/register" state={location.state}>
             Register
           </Link>
         </>
@@ -68,48 +60,23 @@ export function LoginPage() {
         )}
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
+          <Input id="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
         </div>
         <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-          />
+          <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
         </div>
         <Button className="h-9 w-full" type="submit" disabled={submitting}>
-          {submitting ? (
-            <>
-              <Spinner /> Logging in
-            </>
-          ) : (
-            "Log in"
-          )}
+          {submitting ? <><Spinner /> Logging in</> : 'Log in'}
         </Button>
         <div className="rounded-lg border bg-muted/50 p-3 text-xs text-muted-foreground">
           <p className="font-medium text-foreground">Demo reviewer</p>
-          <p className="mt-1">
-            Email: <code>a@a.a</code> · Password: <code>1234</code>
-          </p>
+          <p className="mt-1">Email: <code>a@a.a</code> · Password: <code>1234</code></p>
           <Button
             className="mt-2 h-auto p-0 text-xs"
             type="button"
             variant="link"
-            onClick={() => {
-              setEmail("a@a.a")
-              setPassword("1234")
-            }}
+            onClick={() => { setEmail('a@a.a'); setPassword('1234') }}
           >
             Use demo credentials
           </Button>

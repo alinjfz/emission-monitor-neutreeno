@@ -1,22 +1,22 @@
-export type SubmissionStatus = "new" | "pending" | "approved" | "rejected"
-export type StatusFilter = "all" | SubmissionStatus
-export type UnitCode = "per_item" | "per_kg"
-export type ReviewAction = "opened" | "approved" | "rejected"
-export type DecisionAction = "approved" | "rejected"
-export type ViewMode = "table" | "cards"
-export type SortDirection = "asc" | "desc"
+export type SubmissionStatus = 'new' | 'pending' | 'approved' | 'rejected'
+export type StatusFilter = 'all' | SubmissionStatus
+export type UnitCode = 'per_item' | 'per_kg'
+export type ReviewAction = 'opened' | 'approved' | 'rejected'
+export type DecisionAction = 'approved' | 'rejected'
+export type ViewMode = 'table' | 'cards'
+export type SortDirection = 'asc' | 'desc'
 export type SortName =
-  | "queue"
-  | "product"
-  | "supplier"
-  | "status"
-  | "footprint"
-  | "uncertainty"
-  | "period_start"
-  | "period_end"
-  | "duration"
-  | "submitted_at"
-  | "last_modified_at"
+  | 'queue'
+  | 'product'
+  | 'supplier'
+  | 'status'
+  | 'footprint'
+  | 'uncertainty'
+  | 'period_start'
+  | 'period_end'
+  | 'duration'
+  | 'submitted_at'
+  | 'last_modified_at'
 
 export interface User {
   id: number

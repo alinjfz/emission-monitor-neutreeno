@@ -1,17 +1,11 @@
-import {
-  BrowserRouter,
-  Navigate,
-  Route,
-  Routes,
-  useLocation,
-} from "react-router"
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router'
 
-import { AppProviders } from "@/app/providers"
-import { Spinner } from "@/components/ui/spinner"
-import { LoginPage } from "@/features/auth/login-page"
-import { RegisterPage } from "@/features/auth/register-page"
-import { useAuth } from "@/features/auth/use-auth"
-import { SubmissionsPage } from "@/features/submissions/submissions-page"
+import { AppProviders } from '@/app/providers'
+import { Spinner } from '@/components/ui/spinner'
+import { LoginPage } from '@/features/auth/login-page'
+import { RegisterPage } from '@/features/auth/register-page'
+import { useAuth } from '@/features/auth/use-auth'
+import { SubmissionsPage } from '@/features/submissions/submissions-page'
 
 function ProtectedRoute() {
   const { user, loading } = useAuth()
@@ -19,10 +13,7 @@ function ProtectedRoute() {
 
   if (loading) {
     return (
-      <main
-        className="grid min-h-screen place-items-center"
-        aria-label="Restoring your session"
-      >
+      <main className="grid min-h-screen place-items-center" aria-label="Restoring your session">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Spinner /> Restoring session
         </div>
@@ -46,13 +37,8 @@ function NotFound() {
     <main className="grid min-h-screen place-items-center px-6 text-center">
       <div>
         <p className="text-sm font-medium text-muted-foreground">404</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          Page not found
-        </h1>
-        <a
-          className="mt-5 inline-block text-sm font-medium underline underline-offset-4"
-          href="/"
-        >
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Page not found</h1>
+        <a className="mt-5 inline-block text-sm font-medium underline underline-offset-4" href="/">
           Return to Emissions Monitor
         </a>
       </div>

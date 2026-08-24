@@ -1,23 +1,16 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type FocusEvent,
-  type KeyboardEvent,
-  type MouseEvent,
-} from "react"
-import { Check, X } from "lucide-react"
-import { toast } from "sonner"
+import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent, type MouseEvent } from 'react'
+import { Check, X } from 'lucide-react'
+import { toast } from 'sonner'
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Spinner } from "@/components/ui/spinner"
-import { Textarea } from "@/components/ui/textarea"
-import { ApiError } from "@/lib/api-client"
-import type { DecisionAction, Submission, SubmissionDetail } from "@/types/api"
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Spinner } from '@/components/ui/spinner'
+import { Textarea } from '@/components/ui/textarea'
+import { ApiError } from '@/lib/api-client'
+import type { DecisionAction, Submission, SubmissionDetail } from '@/types/api'
 
-import { submissionsApi } from "./submissions-api"
+import { submissionsApi } from './submissions-api'
 
 interface ReviewComposerProps {
   submission: Submission
@@ -41,26 +34,20 @@ export function ReviewComposer({
   className,
 }: ReviewComposerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [pendingAction, setPendingAction] = useState<DecisionAction | null>(
-    null
-  )
-  const [error, setError] = useState("")
+  const [pendingAction, setPendingAction] = useState<DecisionAction | null>(null)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (!expanded) return
 
     function collapseOnOutsidePointer(event: PointerEvent) {
-      if (
-        event.target &&
-        !containerRef.current?.contains(event.target as Node)
-      ) {
+      if (event.target && !containerRef.current?.contains(event.target as Node)) {
         onExpandedChange(false)
       }
     }
 
-    document.addEventListener("pointerdown", collapseOnOutsidePointer)
-    return () =>
-      document.removeEventListener("pointerdown", collapseOnOutsidePointer)
+    document.addEventListener('pointerdown', collapseOnOutsidePointer)
+    return () => document.removeEventListener('pointerdown', collapseOnOutsidePointer)
   }, [expanded, onExpandedChange])
 
   function stopPropagation(event: MouseEvent | KeyboardEvent) {
@@ -69,7 +56,7 @@ export function ReviewComposer({
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     stopPropagation(event)
-    if (event.key === "Escape" && !draft) {
+    if (event.key === 'Escape' && !draft) {
       onExpandedChange(false)
     }
   }
@@ -81,7 +68,7 @@ export function ReviewComposer({
   }
 
   async function decide(action: DecisionAction) {
-    setError("")
+    setError('')
     setPendingAction(action)
     try {
       const detail = await submissionsApi.review(submission.id, {
@@ -89,28 +76,16 @@ export function ReviewComposer({
         comment: draft.trim() || undefined,
         expected_version: submission.version,
       })
-      onDraftChange("")
+      onDraftChange('')
       onExpandedChange(false)
-      toast.success(
-        action === "approved" ? "Submission approved" : "Submission rejected"
-      )
+      toast.success(action === 'approved' ? 'Submission approved' : 'Submission rejected')
       onSuccess(detail)
     } catch (caught) {
-      if (
-        caught instanceof ApiError &&
-        caught.status === 409 &&
-        caught.latestSubmission
-      ) {
-        toast.warning(
-          "Another reviewer updated this submission. The latest version is shown."
-        )
+      if (caught instanceof ApiError && caught.status === 409 && caught.latestSubmission) {
+        toast.warning('Another reviewer updated this submission. The latest version is shown.')
         onConflict(caught.latestSubmission)
       } else {
-        setError(
-          caught instanceof ApiError
-            ? caught.message
-            : "Unable to save the review. Please try again."
-        )
+        setError(caught instanceof ApiError ? caught.message : 'Unable to save the review. Please try again.')
       }
     } finally {
       setPendingAction(null)
@@ -118,20 +93,8 @@ export function ReviewComposer({
   }
 
   return (
-    <div
-      ref={containerRef}
-      className={className}
-      onBlur={handleBlur}
-      onClick={stopPropagation}
-      onKeyDown={stopPropagation}
-    >
-      <div
-        className={
-          expanded
-            ? "space-y-2"
-            : "space-y-2 sm:flex sm:min-w-[260px] sm:items-center sm:gap-2 sm:space-y-0"
-        }
-      >
+    <div ref={containerRef} className={className} onBlur={handleBlur} onClick={stopPropagation} onKeyDown={stopPropagation}>
+      <div className={expanded ? 'space-y-2' : 'space-y-2 sm:flex sm:min-w-[260px] sm:items-center sm:gap-2 sm:space-y-0'}>
         {expanded ? (
           <div className="relative">
             <Textarea
@@ -167,13 +130,9 @@ export function ReviewComposer({
             size="sm"
             className="w-full sm:w-auto"
             disabled={pendingAction !== null}
-            onClick={() => void decide("approved")}
+            onClick={() => void decide('approved')}
           >
-            {pendingAction === "approved" ? (
-              <Spinner />
-            ) : (
-              <Check aria-hidden="true" />
-            )}
+            {pendingAction === 'approved' ? <Spinner /> : <Check aria-hidden="true" />}
             Approve
           </Button>
           <Button
@@ -182,13 +141,9 @@ export function ReviewComposer({
             size="sm"
             className="w-full sm:w-auto"
             disabled={pendingAction !== null}
-            onClick={() => void decide("rejected")}
+            onClick={() => void decide('rejected')}
           >
-            {pendingAction === "rejected" ? (
-              <Spinner />
-            ) : (
-              <X aria-hidden="true" />
-            )}
+            {pendingAction === 'rejected' ? <Spinner /> : <X aria-hidden="true" />}
             Reject
           </Button>
         </div>

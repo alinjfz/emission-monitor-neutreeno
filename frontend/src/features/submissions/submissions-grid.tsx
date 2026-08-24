@@ -1,9 +1,9 @@
-import type { ReactNode } from "react"
+import type { ReactNode } from 'react'
 
-import type { Submission } from "@/types/api"
+import type { Submission } from '@/types/api'
 
-import { SubmissionCard } from "./submission-card"
-import type { FieldVisibility } from "./use-field-visibility"
+import { SubmissionCard } from './submission-card'
+import type { FieldVisibility } from './use-field-visibility'
 
 export function SubmissionsGrid({
   submissions,

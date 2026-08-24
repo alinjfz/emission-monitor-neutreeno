@@ -1,5 +1,5 @@
-import { apiFetch } from "@/lib/api-client"
+import { apiFetch } from '@/lib/api-client'
 
 export const developerApi = {
-  reseedDatabase: () => apiFetch<void>("/api/debug/reseed", { method: "POST" }),
+  reseedDatabase: () => apiFetch<void>('/api/debug/reseed', { method: 'POST' }),
 }

@@ -1,16 +1,9 @@
-import {
-  createContext,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type PropsWithChildren,
-} from "react"
+import { createContext, useCallback, useEffect, useMemo, useState, type PropsWithChildren } from 'react'
 
-import { ApiError } from "@/lib/api-client"
-import type { User } from "@/types/api"
+import { ApiError } from '@/lib/api-client'
+import type { User } from '@/types/api'
 
-import { authApi, type LoginInput, type RegisterInput } from "./auth-api"
+import { authApi, type LoginInput, type RegisterInput } from './auth-api'
 
 export interface AuthContextValue {
   user: User | null
@@ -33,7 +26,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       .then((currentUser) => active && setUser(currentUser))
       .catch((error: unknown) => {
         if (active && (!(error instanceof ApiError) || error.status !== 401)) {
-          console.error("Unable to restore session", error)
+          console.error('Unable to restore session', error)
         }
       })
       .finally(() => active && setLoading(false))
@@ -61,7 +54,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const value = useMemo(
     () => ({ user, loading, login, register, logout }),
-    [user, loading, login, register, logout]
+    [user, loading, login, register, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

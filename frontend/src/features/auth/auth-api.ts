@@ -1,5 +1,5 @@
-import { apiFetch } from "@/lib/api-client"
-import type { User } from "@/types/api"
+import { apiFetch } from '@/lib/api-client'
+import type { User } from '@/types/api'
 
 export interface RegisterInput {
   name: string
@@ -13,16 +13,10 @@ export interface LoginInput {
 }
 
 export const authApi = {
-  me: () => apiFetch<User>("/api/auth/me"),
+  me: () => apiFetch<User>('/api/auth/me'),
   login: (payload: LoginInput) =>
-    apiFetch<User>("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
+    apiFetch<User>('/api/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
   register: (payload: RegisterInput) =>
-    apiFetch<User>("/api/auth/register", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
-  logout: () => apiFetch<void>("/api/auth/logout", { method: "POST" }),
+    apiFetch<User>('/api/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
+  logout: () => apiFetch<void>('/api/auth/logout', { method: 'POST' }),
 }

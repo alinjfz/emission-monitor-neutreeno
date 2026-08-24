@@ -1,1 +1,1 @@
-"""Database engine, models, and seed data."""
+"""Database engine, metadata, and seed helpers."""

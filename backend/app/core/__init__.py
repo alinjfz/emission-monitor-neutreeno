@@ -1,1 +1,1 @@
-"""Configuration, security, and shared infrastructure."""
+"""Cross-cutting application configuration and security."""
