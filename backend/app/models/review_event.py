@@ -2,10 +2,11 @@ from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from app.core.time import utc_now
-from app.db.base import Base
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.core.time import utc_now
+from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.footprint_submission import FootprintSubmission

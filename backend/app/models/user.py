@@ -1,10 +1,11 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from app.core.time import utc_now
-from app.db.base import Base
 from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.core.time import utc_now
+from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.review_event import ReviewEvent
