@@ -1,0 +1,58 @@
+# macOS
+.DS_Store
+
+# Frontend
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+
+# JavaScript logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Backend
+backend/.venv/
+backend/.pytest_cache/
+backend/.ruff_cache/
+backend/data/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+*.egg-info/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Editors
+.idea/
+.vscode/*
+.cursor/
+!.vscode/extensions.json
+frontend/.vscode/*
+!frontend/.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Test and coverage artifacts
+.coverage
+htmlcov/
+coverage/
+
+# SQLite runtime files
+*.db
+*.db-shm
+*.db-wal
+
+mydocs/
